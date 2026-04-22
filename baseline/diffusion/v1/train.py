@@ -172,8 +172,17 @@ def train(
     steps_per_epoch = max(1, len(dataset) // batch_size)
     cosine_t_max = steps_per_epoch * 1000
     num_steps = min(num_steps, cosine_t_max * 2)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    warmup_steps = 500
+    cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=cosine_t_max, eta_min=1e-6
+    )
+    scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer,
+        schedulers=[
+            torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1e-3, end_factor=1.0, total_iters=warmup_steps),
+            cosine,
+        ],
+        milestones=[warmup_steps],
     )
 
     best_loss = float("inf")

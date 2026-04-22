@@ -26,7 +26,7 @@ convert() {
 }
 
 train() {
-    uv run train_lerobot_v2.py \
+    uv run baseline/diffusion/v2/train.py \
         --dataset.repo_id="$REPO_ID" \
         --dataset.root="$DATASET_DIR" \
         --policy.type=diffusion \
@@ -41,7 +41,7 @@ train() {
 }
 
 eval() {
-    uv run eval_lerobot_v2.py \
+    uv run baseline/diffusion/v2/eval.py \
         --ckpt "$CKPT" \
         --num-episodes "$NUM_EPISODES"
 }
@@ -49,8 +49,8 @@ eval() {
 train_then_eval() {
     tmux new-session -d -s run "
         cd $(pwd) &&
-        bash commands.sh train &&
-        bash commands.sh eval;
+        bash baseline/diffusion/v2/commands.sh train &&
+        bash baseline/diffusion/v2/commands.sh eval;
         read
     "
     echo "Started tmux session 'run'. Attach with: tmux attach -t run"
