@@ -129,7 +129,17 @@ def collate_fn(batch):
     }
 
 
-def train(num_demos: int, exp_name: str, ckpt_dir: str, num_steps: int, batch_size: int, lr: float):
+def train(
+    num_demos: int,
+    exp_name: str,
+    ckpt_dir: str,
+    num_steps: int,
+    batch_size: int,
+    lr: float,
+    save_every: int = 0,     # save a periodic checkpoint every N steps (0 = disabled)
+    patience: int = 5000,   # stop if smoothed loss doesn't improve for this many steps
+    min_steps: int = 10000, # always run at least this many steps
+):
     os.makedirs(ckpt_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Training '{exp_name}' | demos={num_demos} | device={device}")
@@ -158,13 +168,21 @@ def train(num_demos: int, exp_name: str, ckpt_dir: str, num_steps: int, batch_si
         eps=1e-8,
         weight_decay=1e-6,
     )
-    # cosine LR warmup then decay
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps)
+    # T_max from actual dataset size; also cap num_steps to at most 2 cosine cycles.
+    steps_per_epoch = max(1, len(dataset) // batch_size)
+    cosine_t_max = steps_per_epoch * 1000
+    num_steps = min(num_steps, cosine_t_max * 2)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=cosine_t_max, eta_min=1e-6
+    )
 
     best_loss = float("inf")
+    best_smooth = float("inf")
+    steps_since_improve = 0
     loss_history = []
     step = 0
-    log_every = max(1, num_steps // 50)
+    smooth_window = max(200, patience // 25)
+    log_every = max(500, num_steps // 100)
     loader_iter = iter(loader)
 
     while step < num_steps:
@@ -189,18 +207,41 @@ def train(num_demos: int, exp_name: str, ckpt_dir: str, num_steps: int, batch_si
 
         if step % log_every == 0:
             avg = np.mean(loss_history[-log_every:])
-            print(f"  step {step}/{num_steps}  loss={avg:.5f}  lr={scheduler.get_last_lr()[0]:.2e}")
+            current_lr = optimizer.param_groups[0]["lr"]
+            print(f"  step {step}/{num_steps}  loss={avg:.5f}  lr={current_lr:.2e}")
 
         if loss.item() < best_loss:
             best_loss = loss.item()
-            ckpt = {
+            torch.save({
                 "policy_state": policy.state_dict(),
                 "stats": dataset.stats,
                 "cfg": policy.config,
                 "loss_history": loss_history,
                 "step": step,
-            }
-            torch.save(ckpt, os.path.join(ckpt_dir, f"{exp_name}.pth"))
+            }, os.path.join(ckpt_dir, f"{exp_name}.pth"))
+
+        if save_every > 0 and step % save_every == 0:
+            torch.save({
+                "policy_state": policy.state_dict(),
+                "stats": dataset.stats,
+                "cfg": policy.config,
+                "loss_history": loss_history,
+                "step": step,
+            }, os.path.join(ckpt_dir, f"{exp_name}_step{step}.pth"))
+            print(f"  [checkpoint] saved step {step} → {ckpt_dir}/{exp_name}_step{step}.pth")
+
+        # early stopping: check smoothed loss plateau
+        if step >= smooth_window:
+            smooth = float(np.mean(loss_history[-smooth_window:]))
+            if smooth < best_smooth * (1 - 1e-4):  # require 0.01% relative improvement
+                best_smooth = smooth
+                steps_since_improve = 0
+            else:
+                steps_since_improve += 1
+
+            if step >= min_steps and steps_since_improve >= patience:
+                print(f"  Early stop at step {step} (no improvement for {patience} steps)")
+                break
 
     print(f"Done. Best loss={best_loss:.5f} | saved to {ckpt_dir}/{exp_name}.pth")
     _plot_loss(loss_history, exp_name, ckpt_dir)
@@ -238,6 +279,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-steps", type=int, default=200_000)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--save-every", type=int, default=0,
+                        help="Save a periodic checkpoint every N steps (0 = disabled)")
     args = parser.parse_args()
     train(
         num_demos=args.num_demos,
@@ -246,4 +289,5 @@ if __name__ == "__main__":
         num_steps=args.num_steps,
         batch_size=args.batch_size,
         lr=args.lr,
+        save_every=args.save_every,
     )

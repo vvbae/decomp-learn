@@ -29,34 +29,21 @@ ACTION_DIM = 8
 def load_policy(
     ckpt_path: str,
     device: torch.device,
-    noise_scheduler: str = "DDIM",
-    num_inference_steps: int = 10,
+    noise_scheduler: str = None,
+    num_inference_steps: int = None,
 ) -> DiffusionPolicy:
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     stats = ckpt["stats"]
 
-    cfg = DiffusionConfig(
-        n_obs_steps=2,
-        horizon=16,
-        n_action_steps=8,
-        input_features={
-            "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(OBS_DIM,)),
-            "observation.environment_state": PolicyFeature(type=FeatureType.ENV, shape=(OBS_DIM,)),
-        },
-        output_features={
-            "action": PolicyFeature(type=FeatureType.ACTION, shape=(ACTION_DIM,)),
-        },
-        normalization_mapping={
-            "STATE": NormalizationMode.MIN_MAX,
-            "ENV": NormalizationMode.MIN_MAX,
-            "ACTION": NormalizationMode.MIN_MAX,
-        },
-        push_to_hub=False,
-        down_dims=(256, 512, 1024),
-        noise_scheduler_type=noise_scheduler,
-        num_inference_steps=num_inference_steps,
-        device=device.type if hasattr(device, "type") else str(device),
-    )
+    # Load cfg from checkpoint so architecture always matches
+    cfg = ckpt["cfg"]
+    cfg.device = device.type if hasattr(device, "type") else str(device)
+    # Allow CLI overrides for scheduler/steps (optional)
+    if noise_scheduler is not None:
+        cfg.noise_scheduler_type = noise_scheduler
+    if num_inference_steps is not None:
+        cfg.num_inference_steps = num_inference_steps
+
     full_stats = {
         "observation.state": stats["observation.state"],
         "observation.environment_state": stats["observation.state"],
@@ -134,8 +121,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt", required=True)
     parser.add_argument("--num-episodes", type=int, default=100)
-    parser.add_argument("--scheduler", type=str, default="DDIM", choices=["DDIM", "DDPM"])
-    parser.add_argument("--num-inference-steps", type=int, default=10)
+    parser.add_argument("--scheduler", type=str, default=None, choices=["DDIM", "DDPM"])
+    parser.add_argument("--num-inference-steps", type=int, default=None)
     args = parser.parse_args()
 
     seeds = load_seeds(args.num_episodes)

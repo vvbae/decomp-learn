@@ -26,11 +26,8 @@ EXP_ROOT = "experiments"
 RESULTS_FILE = "baseline_results.json"
 PLOT_FILE = "baseline_curve.png"
 
-# Steps equalized by dataset size: aim for ~300 passes through each dataset.
-# ~120 samples/demo on average, batch=256 → steps ≈ (n * 120 * 300) / 256
-def num_steps_for(n: int) -> int:
-    raw = int(n * 120 * 300 / 256)
-    return max(raw, 50_000)   # floor at 50k even for tiny sets
+# Hard cap — early stopping exits well before this for small datasets.
+MAX_STEPS = 300_000
 
 
 def exp_dir(n: int) -> str:
@@ -83,13 +80,12 @@ def main():
 
         # --- train ---
         if not os.path.exists(ckpt):
-            steps = num_steps_for(n)
-            print(f"\n=== Training demos={n}  steps={steps} ===")
+            print(f"\n=== Training demos={n}  max_steps={MAX_STEPS} ===")
             train(
                 num_demos=n,
                 exp_name="policy",
                 ckpt_dir=d,
-                num_steps=steps,
+                num_steps=MAX_STEPS,
                 batch_size=256,
                 lr=1e-4,
             )

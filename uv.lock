@@ -1305,6 +1305,8 @@ name = "maniskill-exp"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "imageio", extra = ["ffmpeg"] },
+    { name = "imageio-ffmpeg" },
     { name = "lerobot" },
     { name = "mani-skill" },
     { name = "torch" },
@@ -1315,6 +1317,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "imageio", extras = ["ffmpeg"], specifier = ">=2.37.3" },
+    { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "lerobot", specifier = ">=0.3.3" },
     { name = "mani-skill", specifier = ">=3.0.0b22" },
     { name = "torch", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu128" },
