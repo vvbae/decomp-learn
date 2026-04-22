@@ -76,6 +76,67 @@ decomp-learn/
 └── results/            # logged metrics, plots
 ```
 
+## Smoke Tests
+
+Before claiming any script works, run the corresponding smoke test. All smoke tests should complete in under 60 seconds.
+
+### baseline/diffusion/v1
+
+```bash
+# 1 step of training, tiny dataset
+uv run baseline/diffusion/v1/train.py \
+    --num-demos 2 --num-steps 2 --batch-size 2 \
+    --exp-name smoke_v1 --ckpt-dir /tmp/smoke_v1
+
+# eval: 2 episodes
+uv run baseline/diffusion/v1/eval.py \
+    --ckpt /tmp/smoke_v1/smoke_v1.pth --num-episodes 2
+```
+
+### baseline/diffusion/v2
+
+```bash
+# convert 2 demos only
+uv run python -m mani_skill.trajectory.convert_to_lerobot \
+    --traj-path ~/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.state.pd_joint_pos.physx_cpu.h5 \
+    --output-dir /tmp/smoke_ds_v2 \
+    --task-name PegInsertionSide-v1
+
+# 2 steps of training
+uv run baseline/diffusion/v2/train.py \
+    --dataset.repo_id=local/smoke \
+    --dataset.root=/tmp/smoke_ds_v2 \
+    --policy.type=diffusion \
+    --batch_size=2 --steps=2 --save_freq=2 \
+    --output_dir=/tmp/smoke_v2
+
+# eval against the saved checkpoint
+uv run baseline/diffusion/v2/eval.py \
+    --ckpt /tmp/smoke_v2/checkpoints/000002/pretrained_model \
+    --num-episodes 2
+```
+
+### baseline/diffusion/v3
+
+```bash
+# convert same as v2 above (reuse /tmp/smoke_ds_v2), then:
+uv run python -m lerobot.scripts.train \
+    --dataset.repo_id=local/smoke \
+    --dataset.root=/tmp/smoke_ds_v2 \
+    --policy.type=diffusion \
+    --batch_size=2 --steps=2 --save_freq=2 \
+    --output_dir=/tmp/smoke_v3
+
+uv run baseline/diffusion/v2/eval.py \
+    --ckpt /tmp/smoke_v3/checkpoints/000002/pretrained_model \
+    --num-episodes 2
+```
+
+**What to check after each smoke test:**
+- No import errors or missing keys
+- Checkpoint directory exists and contains `pretrained_model/model.safetensors`
+- Eval runs without crashing (success rate doesn't matter with 2 steps)
+
 ## Key Files
 
 - Demo data: `~/.maniskill/demos/PegInsertionSide-v1/`
