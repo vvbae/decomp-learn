@@ -134,6 +134,26 @@ uv run baseline/diffusion/v2/eval.py \
     --num-episodes 2
 ```
 
+### decomp/v1
+
+```bash
+# convert 2 demos contact-split
+uv run baseline/diffusion/v2/convert.py \
+    --output-dir /tmp/smoke_contact_ds \
+    --num-demos 2 \
+    --repo-id local/smoke-contact \
+    --contact-split
+
+# 2 steps of training
+uv run decomp/v1/train.py \
+    --dataset.repo_id=local/smoke-contact \
+    --dataset.root=/tmp/smoke_contact_ds \
+    --policy.type=diffusion \
+    --policy.push_to_hub=false \
+    --batch_size=2 --steps=2 --save_freq=2 \
+    --output_dir=/tmp/decomp_v1_smoke
+```
+
 **What to check after each smoke test:**
 - No import errors or missing keys
 - Checkpoint directory exists and contains `pretrained_model/model.safetensors`
