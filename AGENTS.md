@@ -144,7 +144,7 @@ uv run baseline/diffusion/v2/convert.py \
     --repo-id local/smoke-contact \
     --contact-split
 
-# 2 steps of training
+# 2 steps of training (--policy.push_to_hub=false is required)
 uv run decomp/v1/train.py \
     --dataset.repo_id=local/smoke-contact \
     --dataset.root=/tmp/smoke_contact_ds \
