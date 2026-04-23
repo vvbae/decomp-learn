@@ -19,10 +19,9 @@ NUM_EPISODES=100
 # ── commands ──────────────────────────────────────────────────────────────────
 
 convert() {
-    uv run python -m mani_skill.trajectory.convert_to_lerobot \
+    uv run baseline/diffusion/v2/convert.py \
         --traj-path "$TRAJ_PATH" \
-        --output-dir "$DATASET_DIR" \
-        --task-name "$TASK_NAME"
+        --output-dir "$DATASET_DIR"
 }
 
 train() {

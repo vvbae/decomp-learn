@@ -78,7 +78,7 @@ decomp-learn/
 
 ## Smoke Tests
 
-Before claiming any script works, run the corresponding smoke test. All smoke tests should complete in under 60 seconds.
+**Agents must run smoke tests themselves** before claiming any script works — do not leave this to the user. All smoke tests should complete in under 60 seconds.
 
 ### baseline/diffusion/v1
 
@@ -96,17 +96,18 @@ uv run baseline/diffusion/v1/eval.py \
 ### baseline/diffusion/v2
 
 ```bash
-# convert 2 demos only
-uv run python -m mani_skill.trajectory.convert_to_lerobot \
+# convert 2 demos only (use our convert.py — mani_skill converter is incompatible with our flat HDF5 format)
+uv run baseline/diffusion/v2/convert.py \
     --traj-path ~/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.state.pd_joint_pos.physx_cpu.h5 \
     --output-dir /tmp/smoke_ds_v2 \
-    --task-name PegInsertionSide-v1
+    --num-demos 2
 
 # 2 steps of training
 uv run baseline/diffusion/v2/train.py \
     --dataset.repo_id=local/smoke \
     --dataset.root=/tmp/smoke_ds_v2 \
     --policy.type=diffusion \
+    --policy.push_to_hub=false \
     --batch_size=2 --steps=2 --save_freq=2 \
     --output_dir=/tmp/smoke_v2
 
@@ -124,6 +125,7 @@ uv run python -m lerobot.scripts.train \
     --dataset.repo_id=local/smoke \
     --dataset.root=/tmp/smoke_ds_v2 \
     --policy.type=diffusion \
+    --policy.push_to_hub=false \
     --batch_size=2 --steps=2 --save_freq=2 \
     --output_dir=/tmp/smoke_v3
 

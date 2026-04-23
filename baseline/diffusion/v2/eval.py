@@ -64,6 +64,7 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
             obs_tensor = torch.from_numpy(obs_frame).unsqueeze(0).to(device)
             batch = {
                 "observation.state": obs_tensor,
+                "observation.environment_state": torch.zeros(1, 2, device=device),
             }
             with torch.no_grad():
                 action = policy.select_action(batch)

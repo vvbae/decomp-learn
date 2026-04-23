@@ -71,10 +71,11 @@ def _maybe_convert_dataset(cfg: TrainPipelineConfig) -> None:
     root = Path(cfg.dataset.root)
     if root.exists():
         return
-    logging.info(f"Dataset not found at {root} — converting from HDF5 via ManiSkill converter...")
+    logging.info(f"Dataset not found at {root} — converting from HDF5...")
     subprocess.run(
         [
-            sys.executable, "-m", "mani_skill.trajectory.convert_to_lerobot",
+            sys.executable,
+            str(Path(__file__).parent / "convert.py"),
             "--traj-path", TRAJ_PATH,
             "--output-dir", str(root),
         ],
