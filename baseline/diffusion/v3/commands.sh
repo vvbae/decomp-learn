@@ -28,6 +28,7 @@ train() {
         --dataset.repo_id=local/peg-insertion-side-996 \
         --dataset.root="$DATASET_DIR" \
         --policy.type=diffusion \
+        --policy.push_to_hub=false \
         --policy.down_dims="[256,512,1024]" \
         --policy.noise_scheduler_type=DDIM \
         --policy.num_inference_steps=10 \
