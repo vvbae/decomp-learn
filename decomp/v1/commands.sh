@@ -8,9 +8,9 @@ DATASET_DIR="datasets/peg_insertion_996_contact"
 REPO_ID="local/peg-insertion-side-contact-996"
 
 OUTPUT_DIR="outputs/train/decomp_v1_996"
-STEPS=200000
+STEPS=20000
 BATCH_SIZE=256
-SAVE_FREQ=50000
+SAVE_FREQ=5000
 LOG_FREQ=500
 
 CKPT="$OUTPUT_DIR/checkpoints/last/pretrained_model"
