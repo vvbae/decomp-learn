@@ -152,6 +152,11 @@ uv run decomp/v1/train.py \
     --policy.push_to_hub=false \
     --batch_size=2 --steps=2 --save_freq=2 \
     --output_dir=/tmp/decomp_v1_smoke
+
+# eval: restores env from demo env_states at contact onset (no mplib needed)
+uv run decomp/v1/eval.py \
+    --ckpt /tmp/decomp_v1_smoke/checkpoints/000002/pretrained_model \
+    --num-episodes 2
 ```
 
 **What to check after each smoke test:**

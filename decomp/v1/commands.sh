@@ -41,7 +41,7 @@ train() {
 }
 
 eval() {
-    uv run python baseline/diffusion/v2/eval.py \
+    uv run python decomp/v1/eval.py \
         --ckpt "$CKPT" \
         --num-episodes "$NUM_EPISODES"
 }
