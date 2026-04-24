@@ -28,6 +28,10 @@ H5 = os.path.expanduser(
     "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
     "trajectory.state.pd_joint_pos.physx_cpu.h5"
 )
+TRAJ_JSON = os.path.expanduser(
+    "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
+    "trajectory.state.pd_joint_pos.physx_cpu.json"
+)
 
 # --------------------------------------------------------------------------- #
 # Contact onset detection (same logic as analyze_contact.py)
@@ -126,8 +130,9 @@ def main():
         render_mode=None,
         max_episode_steps=args.max_contact_steps,
     )
-    # need an initial reset so env internals are set up
-    env.reset(seed=0)
+    import json
+    with open(TRAJ_JSON) as jf:
+        episode_seeds = [ep["episode_seed"] for ep in json.load(jf)["episodes"]]
 
     successes = []
     contact_steps_list = []
@@ -135,6 +140,8 @@ def main():
     with h5py.File(H5, "r") as f:
         keys = sorted(f.keys(), key=lambda k: int(k.split("_")[1]))[: args.num_episodes]
         for i, k in enumerate(keys):
+            # reset with original demo seed so peg/box geometry matches the stored state
+            env.reset(seed=int(episode_seeds[i]))
             obs, contact_step = restore_pre_contact_state(env, f, k)
             success, steps = run_episode(env, policy, obs, device, args.max_contact_steps)
             successes.append(success)
