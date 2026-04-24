@@ -56,6 +56,7 @@ if args.resume:
 ## Research Practices
 
 - **Never delete old checkpoints** without asking
+- **Always save eval results to a file** — never rely on stdout alone. Save a JSON next to the checkpoint (`{ckpt_dir}/../eval_results.json`) with at minimum: `ckpt`, `success_rate`, `n_episodes`, `timestamp`.
 - **Log everything**: training loss, val loss, success rate, step count
 - **Reproducibility**: always set random seeds, log the seed used
 - **Ablations**: design code so hyperparameters are in config files, not hardcoded
