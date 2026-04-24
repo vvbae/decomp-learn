@@ -10,6 +10,8 @@ Usage:
 import argparse
 import json
 import os
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -80,7 +82,21 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
 
     env.close()
     rate = np.mean(successes)
-    print(f"\n{ckpt_path}  |  success rate: {rate:.2%}  ({int(rate*num_episodes)}/{num_episodes})")
+    n_success = int(rate * num_episodes)
+    print(f"\n{ckpt_path}  |  success rate: {rate:.2%}  ({n_success}/{num_episodes})")
+
+    result = {
+        "ckpt": str(ckpt_path),
+        "success_rate": round(rate, 4),
+        "n_success": n_success,
+        "n_episodes": num_episodes,
+        "timestamp": datetime.now().isoformat(),
+    }
+    out_path = Path(ckpt_path).parent / "eval_results.json"
+    with open(out_path, "w") as f:
+        json.dump(result, f, indent=2)
+    print(f"Results saved to {out_path}")
+
     return rate
 
 
