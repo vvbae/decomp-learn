@@ -91,15 +91,15 @@ def convert(h5_path: str, output_dir: str, fps: int = FPS,
     h5_path    = Path(h5_path).expanduser()
     output_dir = Path(output_dir)
 
-    data_dir = output_dir / "data" / "chunk-000"
     meta_dir = output_dir / "meta"
-    data_dir.mkdir(parents=True, exist_ok=True)
     meta_dir.mkdir(parents=True, exist_ok=True)
 
     episode_records = []
     stats_records   = []
     global_idx      = 0
     skipped         = 0
+
+    CHUNKS_SIZE = 1000
 
     with h5py.File(h5_path, "r") as f:
         # Sort numerically by trajectory index
@@ -146,8 +146,11 @@ def convert(h5_path: str, output_dir: str, fps: int = FPS,
                     "task_index":                    np.int64(0),
                 })
 
-            # Write per-episode parquet (matches datasets/peg_insertion_996 format)
-            ep_parquet = data_dir / f"episode_{ep_idx:06d}.parquet"
+            # Write per-episode parquet into the correct chunk directory
+            ep_chunk = ep_idx // CHUNKS_SIZE
+            chunk_dir = output_dir / "data" / f"chunk-{ep_chunk:03d}"
+            chunk_dir.mkdir(parents=True, exist_ok=True)
+            ep_parquet = chunk_dir / f"episode_{ep_idx:06d}.parquet"
             df = pd.DataFrame(rows)
             df.to_parquet(ep_parquet, index=False)
 
@@ -203,8 +206,8 @@ def convert(h5_path: str, output_dir: str, fps: int = FPS,
         "total_frames":   total_frames,
         "total_tasks":    1,
         "total_videos":   0,
-        "total_chunks":   1,
-        "chunks_size":    1000,
+        "total_chunks":   (n_episodes + CHUNKS_SIZE - 1) // CHUNKS_SIZE,
+        "chunks_size":    CHUNKS_SIZE,
         "fps":            fps,
         "splits":         {"train": f"0:{n_episodes}"},
         "data_path":      "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet",

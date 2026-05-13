@@ -2,9 +2,13 @@
 # Train DiffusionPolicy on augmented contact-phase data.
 #
 # Steps (run inside a detached tmux session):
-#   1. Convert augmented H5 -> LeRobot v2.1 dataset
+#   1. Convert augmented H5 -> LeRobot v2.1 dataset (skipped if already done)
 #   2. Train DiffusionPolicy
 #   3. Evaluate the final checkpoint
+#
+# Fix note: --dataset.root must point to the local dataset directory so LeRobot
+# reads from disk rather than fetching from HuggingFace.  The repo_id
+# ("local/augmented-contact-996") is just a label; the actual path is root.
 set -e
 
 H5_PATH=demos/augmented_contact/augmented_contact.h5
@@ -14,9 +18,11 @@ OUTPUT_DIR=outputs/train/augmented_contact
 tmux new-session -d -s train-contact
 
 tmux send-keys -t train-contact "cd $(pwd) && \
-uv run python convert_augmented_to_lerobot.py \
-    --h5-path $H5_PATH \
-    --output-dir $DATASET_DIR && \
+if [ ! -d $DATASET_DIR/meta ]; then \
+  uv run python convert_augmented_to_lerobot.py \
+      --h5-path $H5_PATH \
+      --output-dir $DATASET_DIR; \
+fi && \
 uv run python -m lerobot.scripts.train \
     --dataset.repo_id=local/augmented-contact-996 \
     --dataset.root=$DATASET_DIR \

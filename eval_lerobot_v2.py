@@ -22,7 +22,7 @@ from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
 
 DEMO_JSON = os.path.expanduser(
     "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
-    "trajectory.state.pd_joint_pos.physx_cpu.json"
+    "trajectory.state.pd_joint_delta_pos.physx_cpu.json"
 )
 
 
@@ -33,13 +33,13 @@ def load_policy(ckpt_path: str, device: torch.device) -> DiffusionPolicy:
     return policy
 
 
-def load_seeds(num_episodes: int) -> list:
+def load_seeds(num_episodes: int, seed_start: int = 0) -> list:
     with open(DEMO_JSON) as f:
         eps = json.load(f)["episodes"]
-    return [ep["episode_seed"] for ep in eps[:num_episodes]]
+    return [ep["episode_seed"] for ep in eps[seed_start:seed_start + num_episodes]]
 
 
-def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> float:
+def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None, seed_start: int = 0) -> float:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy = load_policy(ckpt_path, device)
     print(f"Loaded policy from {ckpt_path}")
@@ -47,7 +47,7 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
     env = gym.make(
         "PegInsertionSide-v1",
         obs_mode="state",
-        control_mode="pd_joint_pos",
+        control_mode="pd_joint_delta_pos",
         render_mode=None,
         max_episode_steps=500,
     )
@@ -66,6 +66,7 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
             obs_tensor = torch.from_numpy(obs_frame).unsqueeze(0).to(device)
             batch = {
                 "observation.state": obs_tensor,
+                "observation.environment_state": obs_tensor,
             }
             with torch.no_grad():
                 action = policy.select_action(batch)
@@ -90,6 +91,7 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
         "success_rate": round(rate, 4),
         "n_success": n_success,
         "n_episodes": num_episodes,
+        "seed_start": seed_start,
         "timestamp": datetime.now().isoformat(),
     }
     out_path = Path(ckpt_path).parent / "eval_results.json"
@@ -103,8 +105,10 @@ def evaluate(ckpt_path: str, num_episodes: int = 100, seeds: list = None) -> flo
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt", required=True, help="Path to pretrained_model/ directory")
-    parser.add_argument("--num-episodes", type=int, default=100)
+    parser.add_argument("--num-episodes", type=int, default=200)
+    parser.add_argument("--seed-start", type=int, default=796,
+                        help="Index into demo JSON to start loading seeds (796=test set)")
     args = parser.parse_args()
 
-    seeds = load_seeds(args.num_episodes)
-    evaluate(args.ckpt, args.num_episodes, seeds=seeds)
+    seeds = load_seeds(args.num_episodes, args.seed_start)
+    evaluate(args.ckpt, args.num_episodes, seeds=seeds, seed_start=args.seed_start)
