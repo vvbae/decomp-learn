@@ -33,7 +33,7 @@ TASK_NAME = "PegInsertionSide-v1"
 
 TRAJ_PATH = os.path.expanduser(
     "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
-    "trajectory.state.pd_joint_pos.physx_cpu.h5"
+    "trajectory.state.pd_joint_delta_pos.physx_cpu.h5"
 )
 
 FEATURES = {
@@ -100,7 +100,7 @@ def find_contact_step(obs: np.ndarray) -> int:
 
 
 def convert(traj_path: str, output_dir: str, num_demos: int, fps: int, repo_id: str,
-            contact_split: bool = False):
+            contact_split: bool = False, start_demo: int = 0):
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
 
@@ -114,7 +114,8 @@ def convert(traj_path: str, output_dir: str, num_demos: int, fps: int, repo_id: 
 
     skipped = 0
     with h5py.File(traj_path, "r") as f:
-        keys = sorted(f.keys(), key=lambda k: int(k.split("_")[1]))[:num_demos]
+        all_keys = sorted(f.keys(), key=lambda k: int(k.split("_")[1]))
+        keys = all_keys[start_demo:start_demo + num_demos]
         for ep_idx, k in enumerate(keys):
             obs     = f[k]["obs"][:].astype(np.float32)      # (T+1, 43)
             actions = f[k]["actions"][:].astype(np.float32)  # (T, 8)
@@ -155,6 +156,8 @@ if __name__ == "__main__":
     parser.add_argument("--repo-id", default="local/peg-insertion-side")
     parser.add_argument("--contact-split", action="store_true",
                         help="Only keep frames from contact onset onward.")
+    parser.add_argument("--start-demo", type=int, default=0,
+                        help="Index of first demo to include (0-based).")
     args = parser.parse_args()
     convert(args.traj_path, args.output_dir, args.num_demos, args.fps, args.repo_id,
-            contact_split=args.contact_split)
+            contact_split=args.contact_split, start_demo=args.start_demo)

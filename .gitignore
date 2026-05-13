@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 experiments/*/policy.pth
 *.egg-info/
+checkpoints/
+datasets/
+demos/
+outputs/
+visualizations/
+.claude/

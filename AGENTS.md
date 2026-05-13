@@ -137,8 +137,9 @@ uv run baseline/diffusion/v2/eval.py \
 ### decomp/v1
 
 ```bash
-# convert 2 demos contact-split
+# convert 2 demos contact-split (delta pos)
 uv run baseline/diffusion/v2/convert.py \
+    --traj-path ~/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.state.pd_joint_delta_pos.physx_cpu.h5 \
     --output-dir /tmp/smoke_contact_ds \
     --num-demos 2 \
     --repo-id local/smoke-contact \

@@ -26,11 +26,11 @@ from eval import load_policy  # noqa: E402
 
 H5 = os.path.expanduser(
     "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
-    "trajectory.state.pd_joint_pos.physx_cpu.h5"
+    "trajectory.state.pd_joint_delta_pos.physx_cpu.h5"
 )
 TRAJ_JSON = os.path.expanduser(
     "~/.maniskill/demos/PegInsertionSide-v1/motionplanning/"
-    "trajectory.state.pd_joint_pos.physx_cpu.json"
+    "trajectory.state.pd_joint_delta_pos.physx_cpu.json"
 )
 
 # --------------------------------------------------------------------------- #
@@ -116,6 +116,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt", required=True, help="path to pretrained_model dir")
     parser.add_argument("--num-episodes", type=int, default=100)
+    parser.add_argument("--start-episode", type=int, default=0,
+                        help="Index of first demo to evaluate (0-based, for held-out test split)")
     parser.add_argument("--max-contact-steps", type=int, default=200,
                         help="max steps for contact policy per episode")
     args = parser.parse_args()
@@ -126,19 +128,21 @@ def main():
     env = gym.make(
         "PegInsertionSide-v1",
         obs_mode="state",
-        control_mode="pd_joint_pos",
+        control_mode="pd_joint_delta_pos",
         render_mode=None,
         max_episode_steps=args.max_contact_steps,
     )
     import json
     with open(TRAJ_JSON) as jf:
-        episode_seeds = [ep["episode_seed"] for ep in json.load(jf)["episodes"]]
+        all_seeds = [ep["episode_seed"] for ep in json.load(jf)["episodes"]]
 
     successes = []
     contact_steps_list = []
 
     with h5py.File(H5, "r") as f:
-        keys = sorted(f.keys(), key=lambda k: int(k.split("_")[1]))[: args.num_episodes]
+        all_keys = sorted(f.keys(), key=lambda k: int(k.split("_")[1]))
+        keys = all_keys[args.start_episode: args.start_episode + args.num_episodes]
+        episode_seeds = all_seeds[args.start_episode: args.start_episode + args.num_episodes]
         for i, k in enumerate(keys):
             # reset with original demo seed so peg/box geometry matches the stored state
             env.reset(seed=int(episode_seeds[i]))
